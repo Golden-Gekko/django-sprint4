@@ -1,9 +1,9 @@
-from django.views.generic import CreateView  #, UpdateView, DetailView
+from django.views.generic import CreateView, UpdateView  #, DetailView
 from django.urls import reverse_lazy
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 
 from .forms import PostForm
 from .models import Category, Post
@@ -65,6 +65,13 @@ class PostMixin:
     template_name = 'blog/create.html'
 
 
+class OnlyAuthorMixin(UserPassesTestMixin):
+
+    def test_func(self):
+        obj = self.get_object()
+        return obj.author == self.request.user
+
+
 class PostCreateView(LoginRequiredMixin, PostMixin, CreateView):
     success_url = reverse_lazy(
         'blog:profile',
@@ -73,3 +80,24 @@ class PostCreateView(LoginRequiredMixin, PostMixin, CreateView):
     def form_valid(self, form):
         form.instance.author = self.request.user
         return super().form_valid(form)
+
+
+class PostEditView(
+        LoginRequiredMixin,
+        PostMixin,
+        OnlyAuthorMixin,
+        UpdateView):
+    success_url = reverse_lazy('blog:profile')
+
+    def handle_no_permission(self):
+        return redirect(
+            reverse_lazy('post_detail', kwargs={'pk': self.object.pk})
+        )
+
+    def get_success_url(self):
+        return reverse_lazy('post_detail', kwargs={'pk': self.object.pk})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['is_edit'] = True
+        return context
