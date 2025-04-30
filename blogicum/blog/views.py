@@ -1,7 +1,11 @@
+from django.views.generic import CreateView  #, UpdateView, DetailView
+from django.urls import reverse_lazy
 from django.shortcuts import get_object_or_404, render
 from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
+from django.contrib.auth.mixins import LoginRequiredMixin
 
+from .forms import PostForm
 from .models import Category, Post
 
 MAX_POSTS: int = 10
@@ -53,3 +57,19 @@ def profile_view(request, username):
         'page_obj': page_obj,
     }
     return render(request, 'blog/profile.html', context)
+
+
+class PostMixin:
+    model = Post
+    form_class = PostForm
+    template_name = 'blog/create.html'
+
+
+class PostCreateView(LoginRequiredMixin, PostMixin, CreateView):
+    success_url = reverse_lazy(
+        'blog:profile',
+        kwargs={'username': User.username()})
+
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        return super().form_valid(form)
