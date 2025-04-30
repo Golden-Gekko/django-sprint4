@@ -83,6 +83,7 @@ class Post(PostInformationModel):
         null=True,
         verbose_name='Категория'
     )
+    image = models.ImageField('Фото', upload_to='post_images', blank=True)
 
     objects = PostQuerySet.as_manager()
     published = PublishedPostManager()

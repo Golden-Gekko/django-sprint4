@@ -12,7 +12,7 @@ def index(request):
     template = 'blog/index.html'
     paginator = Paginator(Post.published.all(), MAX_POSTS)
     page_obj = paginator.get_page(request.GET.get('page'))
-    return render(request, template, {'post_list': page_obj})
+    return render(request, template, {'page_obj': page_obj})
 
 
 def post_detail(request, post_id):
@@ -35,7 +35,7 @@ def category_posts(request, category_slug):
         template,
         {
             'category': category,
-            'post_list': page_obj
+            'page_obj': page_obj
         }
     )
 
