@@ -10,8 +10,9 @@ User = get_user_model()
 
 def index(request):
     template = 'blog/index.html'
-    post_list = Post.published.all()[:MAX_POSTS]
-    return render(request, template, {'post_list': post_list})
+    paginator = Paginator(Post.published.all(), MAX_POSTS)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    return render(request, template, {'post_list': page_obj})
 
 
 def post_detail(request, post_id):
@@ -27,13 +28,14 @@ def category_posts(request, category_slug):
         is_published=True,
         slug=category_slug
     )
-
+    paginator = Paginator(category.posts(manager='published').all(), MAX_POSTS)
+    page_obj = paginator.get_page(request.GET.get('page'))
     return render(
         request,
         template,
         {
             'category': category,
-            'post_list': category.posts(manager='published').all()
+            'post_list': page_obj
         }
     )
 
