@@ -1,4 +1,4 @@
-from django.views.generic import CreateView, UpdateView  #, DetailView
+from django.views.generic import CreateView, UpdateView, DeleteView  # , DetailView
 from django.urls import reverse_lazy
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth import get_user_model
@@ -6,7 +6,7 @@ from django.core.paginator import Paginator
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 
 from .forms import PostForm
-from .models import Category, Post
+from .models import Category, Comment, Post
 
 MAX_POSTS: int = 10
 User = get_user_model()
@@ -87,7 +87,6 @@ class PostEditView(
         PostMixin,
         OnlyAuthorMixin,
         UpdateView):
-    success_url = reverse_lazy('blog:profile')
 
     def handle_no_permission(self):
         return redirect(
@@ -101,3 +100,46 @@ class PostEditView(
         context = super().get_context_data(**kwargs)
         context['is_edit'] = True
         return context
+
+
+class PostDeleteView(LoginRequiredMixin, PostMixin, DeleteView):
+    success_url = reverse_lazy(
+        'blog:profile',
+        kwargs={'username': User.username()})
+
+
+class CommentMixin:
+    model = Comment
+    fields = ('text',)
+
+
+class CommentCreateView(LoginRequiredMixin, CommentMixin, CreateView):
+    def form_valid(self, form):
+        comment = form.save(commit=False)
+        comment.post = Post.objects.get(pk=self.kwargs['post_id'])
+        comment.author = self.request.user
+        comment.save()
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('post_detail', args=(self.kwargs['post_id'],))
+
+
+class CommentEditView(LoginRequiredMixin, OnlyAuthorMixin, UpdateView):
+    def handle_no_permission(self):
+        return redirect(
+            reverse_lazy('post_detail', kwargs={'pk': self.object.pk})
+        )
+
+    def get_success_url(self):
+        return reverse_lazy('post_detail', kwargs={'pk': self.object.pk})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['is_edit'] = True
+        return context
+
+
+class CommentDeleteView(LoginRequiredMixin, CommentMixin, DeleteView):
+    def get_success_url(self):
+        return reverse_lazy('post_detail', kwargs={'pk': self.object.pk})
