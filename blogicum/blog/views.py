@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.paginator import Paginator
 from django.http import Http404
@@ -117,14 +118,16 @@ class PostEditView(
         PostMixin,
         OnlyAuthorMixin,
         UpdateView):
-
-    def handle_no_permission(self):
-        return redirect(
-            reverse_lazy('blog:post_detail', kwargs={'pk': self.object.pk})
-        )
+    pk_url_kwarg = 'post_id'
 
     def get_success_url(self):
-        return reverse_lazy('blog:post_detail', kwargs={'pk': self.object.pk})
+        return reverse_lazy(
+            'blog:post_detail',
+            kwargs={'post_id': self.object.pk}
+        )
+
+    def handle_no_permission(self):
+        return redirect(self.get_success_url())
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -132,11 +135,17 @@ class PostEditView(
         return context
 
 
-class PostDeleteView(LoginRequiredMixin, PostMixin, DeleteView):
-    def get_success_url(self):
-        return reverse_lazy(
-            'blog:profile',
-            kwargs={'username': self.request.user.username})
+@login_required
+def delete_post(request, post_id):
+    instance = get_object_or_404(
+        Post, pk=post_id, author__username=request.user)
+    if request.method == 'POST':
+        instance.delete()
+        return redirect('blog:profile', request.user)
+    return render(
+        request,
+        'blog/create.html',
+        {'form': PostForm(instance=instance)})
 
 
 class CommentMixin:
@@ -158,7 +167,7 @@ class CommentCreateView(LoginRequiredMixin, CommentMixin, CreateView):
 
 class CommentEditView(LoginRequiredMixin, OnlyAuthorMixin, UpdateView):
     def get_success_url(self):
-        return reverse_lazy('blog:post_detail', kwargs={'pk': self.object.pk})
+        return reverse_lazy('blog:post_detail', kwargs={'post_id': self.object.pk})
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -169,6 +178,16 @@ class CommentEditView(LoginRequiredMixin, OnlyAuthorMixin, UpdateView):
         return redirect(self.get_success_url())
 
 
-class CommentDeleteView(LoginRequiredMixin, CommentMixin, DeleteView):
-    def get_success_url(self):
-        return reverse_lazy('blog:post_detail', kwargs={'pk': self.object.pk})
+@login_required
+def delete_comment(request, post_id, comment_id):
+    instance = get_object_or_404(
+        Comment,
+        id=comment_id,
+        author__username=request.user)
+    if request.method == "POST":
+        instance.delete()
+        return redirect('blog:post_detail', post_id)
+    return render(
+        request,
+        'blog/comment.html',
+        {'comment': instance})

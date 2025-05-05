@@ -94,6 +94,9 @@ class Post(PostInformationModel):
         default_related_name = 'posts'
         ordering = ('-pub_date', 'title')
 
+    def comment_count(self):
+        return self.comments.count()
+
     def __str__(self):
         return convert_long_string(self.title)
 
