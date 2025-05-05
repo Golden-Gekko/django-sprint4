@@ -5,7 +5,7 @@ from django.core.paginator import Paginator
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, DeleteView, DetailView, UpdateView
+from django.views.generic import CreateView, DetailView, UpdateView
 
 from .forms import CommentForm, PostForm
 from .models import Category, Comment, Post
@@ -98,13 +98,12 @@ class PostDetailView(DetailView):
     template_name = 'blog/detail.html'
     pk_url_kwarg = 'post_id'
 
-    # def get_object(self):
-    #     object = super().get_object()
-    #     if self.request.user == object.author or (
-    #             object.is_published and object.category.is_published):
-    #         raise Http404()
-    #     print('6' * 100)
-    #     return object
+    def get_object(self):
+        object = super().get_object()
+        if self.request.user == object.author or (
+                object.is_published and object.category.is_published):
+            return object
+        raise Http404()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
