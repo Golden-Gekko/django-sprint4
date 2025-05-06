@@ -120,10 +120,8 @@ class PostEditView(
     pk_url_kwarg = 'post_id'
 
     def get_success_url(self):
-        return reverse_lazy(
-            'blog:post_detail',
-            kwargs={'post_id': self.object.pk}
-        )
+        post_id = self.kwargs.get('pk') or self.request.POST.get('id')
+        return reverse_lazy('blog:post_detail', kwargs={'post_id': post_id})
 
     def handle_no_permission(self):
         return redirect(self.get_success_url())
@@ -150,12 +148,13 @@ def delete_post(request, post_id):
 class CommentMixin:
     model = Comment
     fields = ('text',)
+    template_name = 'blog/comment.html'
 
 
 class CommentCreateView(LoginRequiredMixin, CommentMixin, CreateView):
     def form_valid(self, form):
         comment = form.save(commit=False)
-        comment.post = Post.objects.get(pk=self.kwargs['post_id'])
+        comment.post = get_object_or_404(Post, id=self.kwargs.get('post_id'))
         comment.author = self.request.user
         comment.save()
         return super().form_valid(form)
@@ -164,9 +163,16 @@ class CommentCreateView(LoginRequiredMixin, CommentMixin, CreateView):
         return reverse_lazy('blog:post_detail', args=(self.kwargs['post_id'],))
 
 
-class CommentEditView(LoginRequiredMixin, OnlyAuthorMixin, UpdateView):
+class CommentEditView(
+        LoginRequiredMixin,
+        OnlyAuthorMixin,
+        CommentMixin,
+        UpdateView):
+    pk_url_kwarg = 'comment_id'
+
     def get_success_url(self):
-        return reverse_lazy('blog:post_detail', kwargs={'post_id': self.object.pk})
+        post_id = self.kwargs.get('post_id') or self.request.POST.get('post_id')
+        return reverse_lazy('blog:post_detail', kwargs={'post_id': post_id})
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
