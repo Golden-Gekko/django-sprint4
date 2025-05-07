@@ -4,7 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.paginator import Paginator
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse
 from django.views.generic import CreateView, DetailView, UpdateView
 
 from .forms import CommentForm, PostForm
@@ -21,7 +21,9 @@ def get_paginator_page(posts, request, max_posts=MAX_POSTS):
 
 def index(request):
     template = 'blog/index.html'
-    page_obj = get_paginator_page(posts=Post.published.all(), request=request)
+    page_obj = get_paginator_page(
+        posts=Post.published.all().with_comment_count(),
+        request=request)
     return render(request, template, {'page_obj': page_obj})
 
 
@@ -48,10 +50,10 @@ def category_posts(request, category_slug):
 
 def profile_view(request, username):
     user = get_object_or_404(User, username=username)
-    if request.user.username == username:
-        posts = user.posts.all()
+    if request.user == user:
+        posts = user.posts.all().with_comment_count()
     else:
-        posts = user.posts(manager='published').all()
+        posts = user.posts(manager='published').all().with_comment_count()
     page_obj = get_paginator_page(posts=posts, request=request)
     context = {
         'profile': user,
@@ -92,7 +94,7 @@ class PostCreateView(LoginRequiredMixin, PostMixin, CreateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse_lazy(
+        return reverse(
             'blog:profile',
             kwargs={'username': self.request.user.username})
 
@@ -124,11 +126,8 @@ class PostEditView(
     pk_url_kwarg = 'post_id'
 
     def get_success_url(self):
-        post_id = (
-            self.kwargs.get(self.pk_url_kwarg)
-            or self.request.POST.get('id')
-        )
-        return reverse_lazy(
+        post_id = self.kwargs.get(self.pk_url_kwarg)
+        return reverse(
             'blog:post_detail',
             kwargs={self.pk_url_kwarg: post_id}
         )
@@ -169,7 +168,7 @@ class CommentCreateView(LoginRequiredMixin, CommentMixin, CreateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse_lazy('blog:post_detail', args=(self.kwargs['post_id'],))
+        return reverse('blog:post_detail', args=(self.kwargs['post_id'],))
 
 
 class CommentEditView(
@@ -183,7 +182,7 @@ class CommentEditView(
         post_id = (
             self.kwargs.get('post_id')
             or self.request.POST.get('post_id'))
-        return reverse_lazy('blog:post_detail', kwargs={'post_id': post_id})
+        return reverse('blog:post_detail', kwargs={'post_id': post_id})
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -196,10 +195,7 @@ class CommentEditView(
 
 @login_required
 def delete_comment(request, post_id, comment_id):
-    instance = get_object_or_404(
-        Comment,
-        id=comment_id,
-        author__username=request.user)
+    instance = get_object_or_404(Comment, id=comment_id, author=request.user)
     if request.method == 'POST':
         instance.delete()
         return redirect('blog:post_detail', post_id)

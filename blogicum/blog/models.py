@@ -21,6 +21,7 @@ class CreatedFieldModel(models.Model):
 
     class Meta:
         abstract = True
+        ordering = ('-created_at')
 
 
 class PostInformationModel(CreatedFieldModel):
@@ -32,7 +33,6 @@ class PostInformationModel(CreatedFieldModel):
 
     class Meta:
         abstract = True
-        ordering = ('-created_at')
 
 
 class Category(PostInformationModel):
@@ -101,7 +101,7 @@ class Post(PostInformationModel):
         ordering = ('-pub_date', 'title')
 
     def comment_count(self):
-        return self.comments.count()
+        return getattr(self, 'comment_count', None)
 
     def __str__(self):
         return convert_long_string(self.title)
