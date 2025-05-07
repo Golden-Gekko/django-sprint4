@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.models import Group
 
-from .models import Category, Location, Post
+from .models import Category, Comment, Location, Post
 
 
 class PostInline(admin.TabularInline):
@@ -67,6 +67,20 @@ class PostAdmin(admin.ModelAdmin):
         'category',
         'author'
     )
+
+
+@admin.register(Comment)
+class CommentAdmin(admin.ModelAdmin):
+    list_display = (
+        'text',
+        'author',
+        'post',
+        'created_at'
+    )
+    list_editable = (
+        'text',
+    )
+    search_fields = ('text',)
 
 
 admin.site.unregister(Group)

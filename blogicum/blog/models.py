@@ -16,13 +16,19 @@ def convert_long_string(input: str) -> str:
     return input
 
 
-class PostInformationModel(models.Model):
+class CreatedFieldModel(models.Model):
+    created_at = models.DateTimeField('Добавлено', auto_now_add=True)
+
+    class Meta:
+        abstract = True
+
+
+class PostInformationModel(CreatedFieldModel):
     is_published = models.BooleanField(
         'Опубликовано',
         default=True,
         help_text='Снимите галочку, чтобы скрыть публикацию.'
     )
-    created_at = models.DateTimeField('Добавлено', auto_now_add=True)
 
     class Meta:
         abstract = True
@@ -101,7 +107,7 @@ class Post(PostInformationModel):
         return convert_long_string(self.title)
 
 
-class Comment(models.Model):
+class Comment(CreatedFieldModel):
     text = models.TextField('Текст комментария')
     author = models.ForeignKey(
         User,
@@ -111,14 +117,13 @@ class Comment(models.Model):
     post = models.ForeignKey(
         Post,
         on_delete=models.CASCADE,
-        related_name='comments',
         verbose_name='Пост',
     )
-    created_at = models.DateTimeField('Добавлено', auto_now_add=True)
 
     class Meta:
         verbose_name = 'комментарий'
         verbose_name_plural = 'Комментарии'
+        default_related_name = 'comments'
         ordering = ('created_at',)
 
     def __str__(self):
