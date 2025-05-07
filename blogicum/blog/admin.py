@@ -72,9 +72,9 @@ class PostAdmin(admin.ModelAdmin):
 @admin.register(Comment)
 class CommentAdmin(admin.ModelAdmin):
     list_display = (
-        'text',
         'author',
         'post',
+        'text',
         'created_at'
     )
     list_editable = (

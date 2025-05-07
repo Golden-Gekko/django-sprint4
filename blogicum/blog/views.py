@@ -124,7 +124,10 @@ class PostEditView(
     pk_url_kwarg = 'post_id'
 
     def get_success_url(self):
-        post_id = self.kwargs.get('pk') or self.request.POST.get('id')
+        post_id = (
+            self.kwargs.get(self.pk_url_kwarg)
+            or self.request.POST.get('id')
+        )
         return reverse_lazy(
             'blog:post_detail',
             kwargs={self.pk_url_kwarg: post_id}
