@@ -51,7 +51,7 @@ def category_posts(request, category_slug):
 def profile_view(request, username):
     user = get_object_or_404(User, username=username)
     if request.user == user:
-        posts = user.posts.all().with_comment_count()
+        posts = user.posts.with_comment_count()
     else:
         posts = user.posts(manager='published').all().with_comment_count()
     page_obj = get_paginator_page(posts=posts, request=request)
